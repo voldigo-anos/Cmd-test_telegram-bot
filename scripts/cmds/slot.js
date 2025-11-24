@@ -63,7 +63,7 @@ const nix = {
   version: "1.0.0",
   aliases: ["slot"],
   description: "🎰 Slot machine game with daily limits and jackpots.",
-  author: "Christus",
+  author: "ConvertedByChatGPT",
   prefix: true,
   category: "game",
   cooldown: 8,
@@ -85,7 +85,7 @@ async function onStart({ bot, message, chatId, args }) {
 
   const data = loadData();
 
-  // Correction ici pour récupérer userId en toute sécurité
+  // Récupération sécurisée de userId
   let userId;
   if (message.from && message.from.id) userId = message.from.id.toString();
   else if (message.sender && message.sender.id) userId = message.sender.id.toString();
@@ -126,7 +126,7 @@ async function onStart({ bot, message, chatId, args }) {
     outcome = "🔥 MEGA JACKPOT! TRIPLE 7️⃣!";
     winType = "💎 MAX WIN";
     bonusText = "🎆 BONUS: +3% sur ton solde !";
-    user.money = Math.floor(user.money * 1.03);
+    user.money = Math.floor(user.money * 1.03); // Bonus 3% avant d'ajouter gains
   } else if (slot1 === slot2 && slot2 === slot3) {
     winnings = bet * 5;
     outcome = "💰 JACKPOT! 3 symboles identiques!";
@@ -146,6 +146,10 @@ async function onStart({ bot, message, chatId, args }) {
   }
 
   user.money += winnings;
+
+  // On évite solde négatif
+  if (user.money < 0) user.money = 0;
+
   user.slotsCount++;
   saveData(data);
 
