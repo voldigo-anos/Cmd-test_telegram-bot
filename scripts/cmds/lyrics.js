@@ -4,78 +4,76 @@ const path = require("path");
 
 const nix = {
   name: "lyrics",
-  version: "1.2",
-  aliases: ["ly"],
-  description: "Fetch lyrics of a song",
-  author: "Christus",
+  author: "Christus dev AI / Nix Adapt",
+  version: "1.2.0",
+  description: "Récupère les paroles d'une chanson avec l'artiste et l'image.",
+  category: "Search",
+  usage: "lyrics <nom de la chanson>",
   prefix: false,
-  category: "search",
-  type: "anyone",
-  cooldown: 5,
-  guide: "{p}lyrics <song name>",
 };
+
+// Fonction utilitaire pour télécharger l'image (comme dans fastx)
+async function downloadImage(url, filepath) {
+  const response = await axios({
+    url,
+    method: "GET",
+    responseType: "stream",
+  });
+  const writer = fs.createWriteStream(filepath);
+  response.data.pipe(writer);
+  return new Promise((resolve, reject) => {
+    writer.on("finish", resolve);
+    writer.on("error", reject);
+  });
+}
 
 async function onStart({ bot, message, chatId, args }) {
   const query = args.join(" ");
 
   if (!query) {
-    return message.reply("⚠️ Please provide a song name!\nExample: lyrics apt");
+    return message.reply("⚠️ Veuillez fournir le nom d'une chanson !\nExemple : lyrics apt");
   }
 
-  // Message en attente
-  const waitMsg = await message.reply("🎼 Searching for lyrics...");
-
   try {
-    // Appel API
+    // Appel à l'API de paroles
     const { data } = await axios.get(
       `https://lyricstx.vercel.app/youtube/lyrics?title=${encodeURIComponent(query)}`
     );
 
     if (!data || !data.lyrics) {
-      return bot.editMessageText("❌ Lyrics not found.", {
-        chat_id: chatId,
-        message_id: waitMsg.message_id,
-      });
+      return message.reply("❌ Paroles non trouvées.");
     }
 
-    const { artist_name, track_name, artwork_url, lyrics } = data;
+    const lyricsText = `🎼 **Titre :** ${data.track_name}\n👤 **Artiste :** ${data.artist_name}\n\n${data.lyrics}\n\n✨ *Généré par Nix Bot*`;
 
-    // Téléchargement de l’image
-    const imgPath = path.join(__dirname, "lyrics.jpg");
-    const imgResp = await axios.get(artwork_url, { responseType: "stream" });
+    // Chemin temporaire pour l'image
+    const cacheFolder = path.join(__dirname, "tmp");
+    if (!fs.existsSync(cacheFolder)) fs.mkdirSync(cacheFolder);
+    const imagePath = path.join(cacheFolder, `lyrics_${Date.now()}.jpg`);
 
-    const writer = fs.createWriteStream(imgPath);
-    imgResp.data.pipe(writer);
+    try {
+      // Téléchargement et envoi avec bot.sendPhoto
+      await downloadImage(data.artwork_url, imagePath);
 
-    writer.on("finish", async () => {
-      // Envoi message Telegram
-      await bot.sendPhoto(chatId, imgPath, {
-        caption: `🎼 *${track_name}*\n👤 Artist: *${artist_name}*\n\n${lyrics}`,
+      await bot.sendPhoto(chatId, imagePath, {
+        caption: lyricsText.length > 1024 ? lyricsText.substring(0, 1021) + "..." : lyricsText,
         parse_mode: "Markdown"
       });
 
-      fs.unlinkSync(imgPath);
-      await bot.deleteMessage(chatId, waitMsg.message_id);
-    });
+      // Si les paroles sont trop longues pour une légende (limite Telegram 1024 char)
+      if (lyricsText.length > 1024) {
+        await message.reply(lyricsText);
+      }
 
-    writer.on("error", async () => {
-      await bot.editMessageText(
-        `🎼 *${track_name}*\n👤 Artist: *${artist_name}*\n\n${lyrics}`,
-        {
-          chat_id: chatId,
-          message_id: waitMsg.message_id,
-          parse_mode: "Markdown"
-        }
-      );
-    });
+      fs.unlinkSync(imagePath);
+    } catch (imgErr) {
+      // Fallback si l'image échoue : envoi du texte seul
+      await message.reply(lyricsText);
+    }
 
   } catch (err) {
-    console.error("Lyrics Command Error:", err);
-
-    await bot.editMessageText(
-      "❌ Error: Unable to fetch lyrics. Please try again later.",
-      { chat_id: chatId, message_id: waitMsg.message_id }
-    );
+    console.error("Lyrics Error:", err.message);
+    message.reply("❌ Erreur : Impossible de récupérer les paroles.");
   }
 }
 
