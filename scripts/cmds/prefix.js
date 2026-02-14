@@ -20,7 +20,7 @@ const nix = {
     nix: {
         name: "prefix",
         aliases: ["pre"],
-        author: "Christus",
+        author: "NTKhang / Christus",
         version: "1.4",
         cooldowns: 5,
         role: 0, 
@@ -29,28 +29,27 @@ const nix = {
         guide: "{pn} <nouveau_prefixe> [-g | reset]"
     },
 
-    onStart: async function ({ message, args, chatId, role }) {
+    onStart: async function ({ message, args, chatId, role, event }) {
         const prefixes = getPrefixData();
         const globalPrefix = global.config.prefix;
         const currentPrefix = prefixes[chatId] || globalPrefix;
-        
-        // Sécurité pour le nom d'utilisateur
-        // On teste plusieurs chemins possibles selon ton système
-        const sender = message.from || message.sender || {};
-        const name = sender.first_name || sender.name || "Utilisateur";
 
-        // Affichage des préfixes si pas d'arguments
+        // Récupération du nom sans fioritures
+        const senderInfo = message.sender || message.from || event || {};
+        const name = senderInfo.first_name || senderInfo.name || senderInfo.firstName || "Utilisateur";
+
+        // Affichage des préfixes
         if (!args[0]) {
-            return message.reply(`👋 Hey ${name}, tu m’as demandé mon préfixe ?\n➥ 🌐 Global : ${globalPrefix}\n➥ 💬 Ce groupe : ${currentPrefix}`);
+            return message.reply(`👋 Hey ${name}, tu m’as demandé mon préfixe ?\n\n➥ 🌐 Global : ${globalPrefix}\n➥ 💬 Ce groupe : ${currentPrefix}\n\nJe suis à ton service 🫡`);
         }
 
-        // Cas du RESET
+        // Commande RESET
         if (args[0].toLowerCase() === 'reset') {
             if (prefixes[chatId]) {
                 delete prefixes[chatId];
                 savePrefixData(prefixes);
             }
-            return message.reply(`✅ Hey ${name}, ton préfixe a été réinitialisé : ${globalPrefix}`);
+            return message.reply(`✅ Hey ${name}, ton préfixe a été réinitialisé à : ${globalPrefix}`);
         }
 
         const newPrefix = args[0];
@@ -59,21 +58,20 @@ const nix = {
             return message.reply(`❌ Désolé ${name}, le préfixe ne peut pas dépasser 3 caractères.`);
         }
 
-        // Cas du changement GLOBAL (-g)
+        // Changement GLOBAL (-g)
         if (args[1] === "-g") {
             if (role < 2) { 
                 return message.reply(`❌ Désolé ${name}, seul un admin bot peut changer le préfixe global.`);
             }
-            // Ici on change le préfixe dans la mémoire vive du bot
             global.config.prefix = newPrefix;
-            return message.reply(`✅ Hey ${name}, le préfixe GLOBAL a été changé en : ${newPrefix}`);
+            return message.reply(`🌐 Global : ${name}, le préfixe système a été changé en : ${newPrefix}`);
         }
 
         // Changement LOCAL (par groupe)
         prefixes[chatId] = newPrefix;
         savePrefixData(prefixes);
 
-        return message.reply(`✅ Hey ${name}, le préfixe de ce groupe a été changé en : ${newPrefix}`);
+        return message.reply(`✅ Hey ${name}, le préfixe de ce groupe est maintenant : ${newPrefix}`);
     }
 };
 
