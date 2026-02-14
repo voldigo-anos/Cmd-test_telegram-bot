@@ -20,40 +20,56 @@ const nix = {
     nix: {
         name: "prefix",
         aliases: ["pre"],
-        author: "ARYAN",
-        version: "1.0",
+        author: "NTKhang / Christus",
+        version: "1.4",
         cooldowns: 5,
         role: 0, 
-        description: "Change the command prefix for the group.",
-        category: "GROUP",
-        guide: "Use: {pn} change <new_prefix>"
+        description: "Changer le préfixe de commande du bot.",
+        category: "config",
+        guide: "{pn} <nouveau_prefixe> [-g | reset]"
     },
-    onStart: async function ({ message, args, chatId }) {
+
+    onStart: async function ({ message, args, chatId, role }) {
         const prefixes = getPrefixData();
-        const currentPrefix = prefixes[chatId] || global.config.prefix;
-        
+        const globalPrefix = global.config.prefix;
+        const currentPrefix = prefixes[chatId] || globalPrefix;
+        const name = message.from.first_name;
+
+        // Affichage des préfixes si pas d'arguments
         if (!args[0]) {
-            return message.reply(`🌐 System prefix: ${global.config.prefix}\n🛸 This Group's prefix: ${currentPrefix}`);
+            return message.reply(`👋 Hey ${msg.from.first_name}, tu m’as demandé mon préfixe ?\n➥ 🌐 Global : ${globalPrefix}\n➥ 💬 Ce groupe : ${currentPrefix}`);
         }
 
-        if (args[0].toLowerCase() === 'change') {
-            const newPrefix = args[1];
-
-            if (!newPrefix) {
-                return message.reply('❌ Please provide a new prefix.\nExample: prefix change !');
+        // Cas du RESET
+        if (args[0].toLowerCase() === 'reset') {
+            if (prefixes[chatId]) {
+                delete prefixes[chatId];
+                savePrefixData(prefixes);
             }
-
-            if (newPrefix.length > 3) {
-                return message.reply("❌ The new prefix cannot be more than 3 characters long.");
-            }
-
-            prefixes[chatId] = newPrefix;
-            savePrefixData(prefixes);
-            
-            return message.reply(`✅ Prefix changed to ${newPrefix} for this group.`);
+            return message.reply(`✅ Hey ${msg.from.first_name}, ton préfixe a été réinitialisé : ${globalPrefix}`);
         }
 
-        return message.reply('❌ Invalid usage. Try:\nprefix change !');
+        const newPrefix = args[0];
+
+        if (newPrefix.length > 3) {
+            return message.reply(`❌ Désolé ${name}, le préfixe ne peut pas dépasser 3 caractères.`);
+        }
+
+        // Cas du changement GLOBAL (-g)
+        if (args[1] === "-g") {
+            if (role < 2) { // Supposant que role 2 = Admin Bot
+                return message.reply(`❌ Désolé ${name}, seul un admin bot peut changer le préfixe global.`);
+            }
+            global.config.prefix = newPrefix;
+            // Note: Ici il faudrait idéalement sauvegarder dans config.json si nécessaire
+            return message.reply(`✅ Hey ${msg.from.first_name}, le préfixe GLOBAL a été changé en : ${newPrefix}`);
+        }
+
+        // Changement LOCAL (par groupe)
+        prefixes[chatId] = newPrefix;
+        savePrefixData(prefixes);
+
+        return message.reply(`✅ Hey ${msg.from.first_name}, le préfixe de ce groupe a été changé en : ${newPrefix}`);
     }
 };
 
