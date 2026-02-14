@@ -20,7 +20,7 @@ const nix = {
     nix: {
         name: "prefix",
         aliases: ["pre"],
-        author: "NTKhang / Christus",
+        author: "Christus",
         version: "1.4",
         cooldowns: 5,
         role: 0, 
@@ -37,7 +37,7 @@ const nix = {
 
         // Affichage des préfixes si pas d'arguments
         if (!args[0]) {
-            return message.reply(`👋 Hey ${msg.from.first_name}, tu m’as demandé mon préfixe ?\n➥ 🌐 Global : ${globalPrefix}\n➥ 💬 Ce groupe : ${currentPrefix}`);
+            return message.reply(`👋 Hey ${name}, tu m’as demandé mon préfixe ?\n➥ 🌐 Global : ${globalPrefix}\n➥ 💬 Ce groupe : ${currentPrefix}`);
         }
 
         // Cas du RESET
@@ -46,7 +46,7 @@ const nix = {
                 delete prefixes[chatId];
                 savePrefixData(prefixes);
             }
-            return message.reply(`✅ Hey ${msg.from.first_name}, ton préfixe a été réinitialisé : ${globalPrefix}`);
+            return message.reply(`✅ Hey ${name}, ton préfixe a été réinitialisé : ${globalPrefix}`);
         }
 
         const newPrefix = args[0];
@@ -62,14 +62,14 @@ const nix = {
             }
             global.config.prefix = newPrefix;
             // Note: Ici il faudrait idéalement sauvegarder dans config.json si nécessaire
-            return message.reply(`✅ Hey ${msg.from.first_name}, le préfixe GLOBAL a été changé en : ${newPrefix}`);
+            return message.reply(`✅ Hey ${name}, le préfixe GLOBAL a été changé en : ${newPrefix}`);
         }
 
         // Changement LOCAL (par groupe)
         prefixes[chatId] = newPrefix;
         savePrefixData(prefixes);
 
-        return message.reply(`✅ Hey ${msg.from.first_name}, le préfixe de ce groupe a été changé en : ${newPrefix}`);
+        return message.reply(`✅ Hey ${name}, le préfixe de ce groupe a été changé en : ${newPrefix}`);
     }
 };
 
