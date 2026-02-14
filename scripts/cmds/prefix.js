@@ -33,7 +33,11 @@ const nix = {
         const prefixes = getPrefixData();
         const globalPrefix = global.config.prefix;
         const currentPrefix = prefixes[chatId] || globalPrefix;
-        const name = message.from.first_name;
+        
+        // Sécurité pour le nom d'utilisateur
+        // On teste plusieurs chemins possibles selon ton système
+        const sender = message.from || message.sender || {};
+        const name = sender.first_name || sender.name || "Utilisateur";
 
         // Affichage des préfixes si pas d'arguments
         if (!args[0]) {
@@ -57,11 +61,11 @@ const nix = {
 
         // Cas du changement GLOBAL (-g)
         if (args[1] === "-g") {
-            if (role < 2) { // Supposant que role 2 = Admin Bot
+            if (role < 2) { 
                 return message.reply(`❌ Désolé ${name}, seul un admin bot peut changer le préfixe global.`);
             }
+            // Ici on change le préfixe dans la mémoire vive du bot
             global.config.prefix = newPrefix;
-            // Note: Ici il faudrait idéalement sauvegarder dans config.json si nécessaire
             return message.reply(`✅ Hey ${name}, le préfixe GLOBAL a été changé en : ${newPrefix}`);
         }
 
