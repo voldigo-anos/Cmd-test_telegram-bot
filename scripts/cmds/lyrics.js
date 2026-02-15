@@ -2,11 +2,11 @@ const axios = require("axios");
 
 const nix = {
   name: "lyrics",
-  version: "1.2.1",
+  version: "1.2.2",
   author: "Christus dev AI",
   role: 0,
   category: "Search",
-  description: "Récupérer les paroles d'une chanson avec artwork",
+  description: "Récupérer les paroles via Musixmatch",
   guide: "<nom de la chanson>",
   cooldown: 5,
 };
@@ -15,34 +15,31 @@ async function onStart({ bot, args, chatId }) {
   const query = args.join(" ").trim();
 
   if (!query) {
-    return bot.sendMessage(chatId, "⚠️ Veuillez fournir le nom d'une chanson !\nExemple : lyrics apt");
+    return bot.sendMessage(chatId, "⚠️ Veuillez fournir le nom d'une chanson !\nExemple : lyrics Imagine");
   }
 
   try {
-    // Envoi d'un message d'attente (optionnel mais recommandé pour le feedback)
-    const searchingMsg = await bot.sendMessage(chatId, "🔍 Recherche des paroles en cours...");
-
+    // Utilisation de l'endpoint Musixmatch qui est plus stable
     const response = await axios.get(
-      `https://lyricstx.vercel.app/lyrics?title=${encodeURIComponent(query)}`
+      `https://lyricstx.vercel.app/musixmatch/lyrics?title=${encodeURIComponent(query)}`
     );
 
     const data = response.data;
 
-    // Correction de la condition : on vérifie si data existe ET si lyrics n'est pas vide
-    if (!data || !data.lyrics || data.lyrics.trim() === "") {
-      return bot.sendMessage(chatId, "❌ Paroles non trouvées. Essayez d'ajouter le nom de l'artiste.");
+    // Vérification stricte du contenu
+    if (!data || !data.lyrics || data.lyrics.includes("not found") || data.lyrics.length < 10) {
+      return bot.sendMessage(chatId, "❌ Paroles non trouvées sur Musixmatch. Essayez d'être plus précis (Artiste - Titre).");
     }
 
-    const caption = `✨ **LYRICS TRANSMISSION**\n` +
-      `━━━━━━━━━━━━━━━━━━\n` +
-      `🎼 **Titre** : ${data.track_name || 'Inconnu'}\n` +
-      `👤 **Artiste** : ${data.artist_name || 'Inconnu'}\n` +
+    const caption = `🎼 **${data.track_name.toUpperCase()}**\n` +
+      `👤 **Artiste** : ${data.artist_name}\n` +
+      `🔍 **Source** : ${data.search_engine}\n` +
       `━━━━━━━━━━━━━━━━━━\n\n` +
       `${data.lyrics}\n\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `🌌 *ChristusBot*`;
 
-    if (data.artwork_url) {
+    if (data.artwork_url && data.artwork_url.startsWith("http")) {
       try {
         const imageRes = await axios.get(data.artwork_url, { responseType: "stream" });
         return bot.sendPhoto(chatId, imageRes.data, { caption });
@@ -55,7 +52,7 @@ async function onStart({ bot, args, chatId }) {
 
   } catch (error) {
     console.error("Lyrics error:", error);
-    return bot.sendMessage(chatId, "❌ Erreur : L'API est peut-être hors ligne ou la requête a expiré.");
+    return bot.sendMessage(chatId, "❌ Erreur de connexion à l'API. Réessayez dans un instant.");
   }
 }
 
